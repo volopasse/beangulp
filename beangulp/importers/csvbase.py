@@ -266,6 +266,8 @@ class CSVReader(metaclass=CSVMeta):
     """Comment character."""
     order = None
     """Order of entries in the CSV file. If None the order will be inferred from the file content."""
+    delimiter = None
+    """Field delimiter. If None the delimiter from `dialect` is used."""
 
     # This is populated by the CSVMeta metaclass.
     columns = {}
@@ -300,7 +302,10 @@ class CSVReader(metaclass=CSVMeta):
             if self.comments:
                 lines = filter(lambda x: not x.startswith(self.comments), lines)
 
-            reader = csv.reader(lines, dialect=self.dialect)
+            # Use an explicit field delimiter when one is configured,
+            # otherwise defer to the dialect.
+            options = {"delimiter": self.delimiter} if self.delimiter else {}
+            reader = csv.reader(lines, dialect=self.dialect, **options)
 
             # Map column names to column indices.
             names = None

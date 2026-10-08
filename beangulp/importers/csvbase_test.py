@@ -294,6 +294,25 @@ class TestCSVReader(unittest.TestCase):
         self.assertEqual(rows[1].second, "4")
 
     @docfile
+    def test_custom_delimiter(self, filename):
+        """\
+        First;Second
+        1;2
+        3;4
+        """
+
+        class Reader(CSVReader):
+            delimiter = ";"
+            first = Column("First")
+            second = Column("Second")
+
+        reader = Reader()
+        rows = list(reader.read(filename))
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rows[0].first, "1")
+        self.assertEqual(rows[1].second, "4")
+
+    @docfile
     def test_named_no_enough_lines(self, filename):
         """\
         # comment
