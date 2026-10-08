@@ -213,7 +213,9 @@ def mark_duplicate_entries(
                 entry.meta[DUPLICATE] = target
 
 
-def print_extracted_entries(extracted: List[ExtractedEntry], output: io.TextIOBase) -> None:
+def print_extracted_entries(
+    extracted: List[ExtractedEntry], output: io.TextIOBase, header: bool = True
+) -> None:
     """Print extracted entries.
 
     Entries marked as duplicates are printed as comments.
@@ -224,9 +226,11 @@ def print_extracted_entries(extracted: List[ExtractedEntry], output: io.TextIOBa
         document at filepath by importer.
       output: A file object to write to. The object needs to implement
        a write() method that accepts an unicode string.
+      header: Whether to write the mode header before the entries. Set
+        to False when appending to an existing file.
 
     """
-    if extracted and HEADER:
+    if header and extracted and HEADER:
         output.write(HEADER + "\n")
 
     for filepath, entries, account, importer in extracted:

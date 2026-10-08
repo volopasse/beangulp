@@ -179,6 +179,75 @@ Importing again the same file results in entries marked as duplicates:
   ;   Assets:Tests  2 TESTS
 
 
+Per-account output directory
+----------------------------
+
+The ``--output-dir`` (``-d``) option writes one file per account, named
+after the account with ``:`` replaced by ``.``, creating the directory if
+it does not exist:
+
+  >>> outdir = path.join(temp, 'by-account')
+  >>> r = run('extract', downloads, '-d', outdir)
+  >>> r.exit_code
+  0
+  >>> outfile = pathlib.Path(outdir, 'Assets.Tests.beancount')
+  >>> outfile.read_text().splitlines()[0]
+  ';; -*- mode: beancount -*-'
+  >>> [l for l in outfile.read_text().splitlines() if l.startswith('****')]
+  ['**** .../downloads/one.beans', '**** .../downloads/two.beans']
+
+Re-running appends without repeating the mode header:
+
+  >>> r = run('extract', downloads, '-d', outdir)
+  >>> r.exit_code
+  0
+  >>> outfile.read_text().count(';; -*- mode: beancount -*-')
+  1
+  >>> len([l for l in outfile.read_text().splitlines() if l.startswith('****')])
+  4
+
+A missing leading dot on ``--ext`` is added:
+
+  >>> r = run('extract', downloads, '-d', outdir, '--ext', 'bc')
+  >>> r.exit_code
+  0
+  >>> path.exists(path.join(outdir, 'Assets.Tests.bc'))
+  True
+
+Batches with no account go to ``unfiled.beancount``:
+
+  >>> _ = pathlib.Path(downloads).joinpath('unfiled.beans').write_text("""
+  ... 2023-01-01 * "Test"
+  ...   Assets:Tests  4 TESTS
+  ... """)
+  >>> noaccount = beangulp.Ingest([
+  ...     IdentityImporter('test.NoAccount', None, '*unfiled.beans')])
+  >>> r = runner.invoke(noaccount.cli, ['extract', downloads, '-d', outdir],
+  ...                   catch_exceptions=False)
+  >>> r.exit_code
+  0
+  >>> path.exists(path.join(outdir, 'unfiled.beancount'))
+  True
+
+Combining ``-d`` with an explicit ``--output`` is rejected before any
+file is created:
+
+  >>> conflict = path.join(temp, 'conflict.beancount')
+  >>> r = run('extract', downloads, '-d', outdir, '-o', conflict)
+  >>> r.exit_code
+  2
+  >>> path.exists(conflict)
+  False
+
+Extraction to standard output is unchanged:
+
+  >>> r = run('extract', downloads)
+  >>> r.exit_code
+  0
+  >>> ';; -*- mode: beancount -*-' in r.output
+  True
+
+
 Cleanup
 -------
 
