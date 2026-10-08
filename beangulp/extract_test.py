@@ -140,3 +140,30 @@ class TestPrint(unittest.TestCase):
 
             """),
         )
+
+    def test_print_extracted_entries_no_header(self):
+        entries, _errors, _options = parser.parse_string(
+            textwrap.dedent("""
+            1970-01-01 * "Test"
+              Assets:Tests  10.00 USD
+            """)
+        )
+
+        extracted = [
+            ("/path/to/test.csv", entries, None, None),
+        ]
+
+        output = io.StringIO()
+        extract.print_extracted_entries(extracted, output, header=False)
+
+        self.assertEqual(
+            output.getvalue(),
+            textwrap.dedent("""\
+            **** /path/to/test.csv
+
+            1970-01-01 * "Test"
+              Assets:Tests  10.00 USD
+
+
+            """),
+        )

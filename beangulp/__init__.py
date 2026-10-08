@@ -17,6 +17,7 @@ import io
 import warnings
 import click
 
+from click.core import ParameterSource
 from beancount import loader
 from typing import Optional
 from typing import List
@@ -63,6 +64,18 @@ def _walk(file_or_dirs, log):
 @click.argument("src", nargs=-1, type=click.Path(exists=True, resolve_path=True))
 @click.option("--output", "-o", type=click.File("w"), default="-", help="Output file.")
 @click.option(
+    "--output-dir",
+    "-d",
+    type=click.Path(exists=False, file_okay=False, resolve_path=True),
+    help="Directory to write one file per account to (cannot be used with --output).",
+)
+@click.option(
+    "--ext",
+    type=str,
+    default=".beancount",
+    help="File extension for --output-dir files (default: .beancount).",
+)
+@click.option(
     "--existing",
     "-e",
     type=click.Path(exists=True),
@@ -76,6 +89,8 @@ def _extract(
     ctx: "Ingest",
     src: str,
     output: io.TextIOBase,
+    output_dir: Optional[str],
+    ext: str,
     existing: Optional[str],
     reverse: bool,
     failfast: bool,
@@ -90,6 +105,17 @@ def _extract(
     associated to the source document.
 
     """
+    if output_dir and (
+        click.get_current_context().get_parameter_source("output")
+        != ParameterSource.DEFAULT
+    ):
+        raise click.UsageError(
+            "Cannot use both --output and --output-dir options together."
+        )
+
+    if output_dir and ext and not ext.startswith("."):
+        ext = "." + ext
+
     verbosity = -quiet
     log = utils.logger(verbosity, err=True)
     errors = exceptions.ExceptionsTrap(log)
@@ -131,7 +157,20 @@ def _extract(
         extracted = func(extracted, existing_entries)
 
     # Serialize entries.
-    extract.print_extracted_entries(extracted, output)
+    if output_dir:
+        os.makedirs(output_dir, exist_ok=True)
+        for filepath, entries, account, importer in extracted:
+            outpath = os.path.join(
+                output_dir, (account or "unfiled").replace(":", ".") + ext
+            )
+            fresh = not os.path.exists(outpath) or os.path.getsize(outpath) == 0
+            with open(outpath, "a") as output_file:
+                extract.print_extracted_entries(
+                    [(filepath, entries, account, importer)], output_file, header=fresh
+                )
+            log(f"* {outpath}")
+    else:
+        extract.print_extracted_entries(extracted, output)
 
     if errors:
         sys.exit(1)

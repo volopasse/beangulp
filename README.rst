@@ -17,3 +17,22 @@ The rest of the Beancount documentation can be found `here`__.
 __ https://github.com/beancount/beangulp/tree/master/examples/
 __ https://beancount.github.io/docs/importing_external_data/
 __ https://beancount.github.io/docs/
+
+
+Extracting to per-account files
+-------------------------------
+
+The ``extract`` command writes the extracted entries to the standard
+output by default, or to a single file with ``--output``/``-o``. Pass
+``--output-dir``/``-d`` to instead write one flat Beancount file per
+account, named after the account with ``:`` replaced by ``.`` (for
+example ``Assets.Denis.Chase.Current.beancount``). The directory is
+created if it does not exist, and ``--ext`` selects the file extension
+(default ``.beancount``; a missing leading dot is added). Batches that are
+not associated with an account are written to ``unfiled.beancount``.
+
+Existing files are appended to, so re-running the extraction adds the
+new sections without removing earlier content and without repeating the
+``;; -*- mode: beancount -*-`` header. Appending does not de-duplicate
+across runs; use ``--existing``/``-e`` for de-duplication. The ``-d``
+option cannot be combined with an explicit ``-o``.
